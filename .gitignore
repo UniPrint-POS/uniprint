@@ -1,0 +1,15 @@
+node_modules/
+dist/
+logs/
+*.log
+*.map
+.env
+.DS_Store
+Thumbs.db
+
+# electron-builder temp files
+app-update.yml
+dev-app-update.yml
+
+# OS
+desktop.ini

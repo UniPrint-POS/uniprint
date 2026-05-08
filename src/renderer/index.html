@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:;" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>UniPrint</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="header">
+    <img src="../../assets/uniprint.png" alt="UniPrint" class="header-logo-img" onerror="this.style.display='none';document.getElementById('header-logo-fallback').style.display='inline'" />
+    <span id="header-status" class="status-badge offline">Offline</span>
+  </header>
+
+  <div class="layout">
+    <nav class="sidebar">
+      <button class="sidebar-btn active" data-tab="dashboard">Dashboard</button>
+      <button class="sidebar-btn" data-tab="printers">Printers</button>
+      <button class="sidebar-btn" data-tab="whitelist">Whitelist</button>
+      <button class="sidebar-btn" data-tab="apikey">API Key</button>
+      <button class="sidebar-btn" data-tab="logs">Logs</button>
+      <button class="sidebar-btn" data-tab="updates">Updates</button>
+    </nav>
+
+    <main class="content">
+
+      <section id="tab-dashboard" class="tab-section">
+        <h2 class="section-title">Dashboard</h2>
+        <div class="stat-grid">
+          <div class="stat-card">
+            <div class="stat-label">Server</div>
+            <div class="stat-value green" id="stat-server">Running</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Printer</div>
+            <div class="stat-value" id="stat-printer">Checking...</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Queue</div>
+            <div class="stat-value" id="stat-queue">0</div>
+          </div>
+        </div>
+        <div class="port-info" id="port-info">Listening on port: —</div>
+        <div class="action-row">
+          <button class="btn btn-primary" id="btn-test-print">Test Print</button>
+          <button class="btn btn-ghost" id="btn-reconnect">Reconnect Printer</button>
+        </div>
+        <div class="setup-card">
+          <div class="setup-card-header">Quick Setup</div>
+          <div class="setup-steps">
+            <div class="setup-step">
+              <div class="setup-step-num">1</div>
+              <div class="setup-step-body">
+                <div class="setup-step-title">Select a printer</div>
+                <div class="setup-step-desc">Open <strong>Printers</strong> and choose your USB or Windows thermal printer.</div>
+              </div>
+            </div>
+            <div class="setup-step">
+              <div class="setup-step-num">2</div>
+              <div class="setup-step-body">
+                <div class="setup-step-title">Set an API key</div>
+                <div class="setup-step-desc">Open <strong>API Key</strong> and enter a secret to share with your POS software.</div>
+              </div>
+            </div>
+            <div class="setup-step">
+              <div class="setup-step-num">3</div>
+              <div class="setup-step-body">
+                <div class="setup-step-title">Whitelist your domain</div>
+                <div class="setup-step-desc">Open <strong>Whitelist</strong> and add your site origin, e.g. <code>https://yourapp.com</code></div>
+              </div>
+            </div>
+            <div class="setup-step">
+              <div class="setup-step-num">4</div>
+              <div class="setup-step-body">
+                <div class="setup-step-title">Send print requests</div>
+                <div class="setup-step-code">POST http://127.0.0.1:PORT/print
+Authorization: Bearer YOUR_KEY</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="tab-printers" class="tab-section hidden">
+        <h2 class="section-title">Printers</h2>
+        <div id="selected-printer-info" class="callout hidden">
+          <div class="callout-title">Currently Selected</div>
+          <div id="selected-printer-name"></div>
+        </div>
+        <button class="btn btn-ghost" id="btn-refresh-printers">Refresh</button>
+        <div id="printer-list" class="printer-list">
+          <div class="empty-state">Click Refresh to scan for printers.</div>
+        </div>
+      </section>
+
+      <section id="tab-whitelist" class="tab-section hidden">
+        <h2 class="section-title">Whitelist</h2>
+        <p class="section-desc">Add domains that are allowed to send print jobs. Leave empty to block all external requests.</p>
+        <div class="input-row">
+          <input
+            class="field-input"
+            type="text"
+            id="whitelist-input"
+            placeholder="https://yourapp.com"
+            autocomplete="off"
+            spellcheck="false"
+          />
+          <button class="btn btn-primary" id="btn-add-whitelist">Add</button>
+        </div>
+        <div id="whitelist-list" class="whitelist-list"></div>
+      </section>
+
+      <section id="tab-apikey" class="tab-section hidden">
+        <h2 class="section-title">API Key</h2>
+        <p class="section-desc">Enter the secret API key that your POS software will use. UniPrint stores only a secure hash — the original key is never saved.</p>
+        <div class="callout" id="apikey-status-box">
+          <span id="apikey-status-text">Checking...</span>
+        </div>
+        <div class="input-row">
+          <input
+            class="field-input"
+            type="password"
+            id="apikey-input"
+            placeholder="Minimum 16 characters"
+            autocomplete="new-password"
+          />
+          <button class="btn btn-primary" id="btn-set-apikey">Set Key</button>
+        </div>
+        <div>
+          <button class="btn btn-danger hidden" id="btn-clear-apikey">Clear API Key</button>
+        </div>
+      </section>
+
+      <section id="tab-logs" class="tab-section hidden">
+        <h2 class="section-title">Logs</h2>
+        <div class="log-toolbar">
+          <button class="btn btn-ghost" id="btn-clear-logs">Clear</button>
+        </div>
+        <div id="log-container" class="log-container"></div>
+      </section>
+
+      <section id="tab-updates" class="tab-section hidden">
+        <h2 class="section-title">Updates</h2>
+        <div class="update-info">
+          <div class="update-row">
+            <span class="update-label">Current Version</span>
+            <span id="update-version" class="update-value">—</span>
+          </div>
+          <div class="update-row">
+            <span class="update-label">Status</span>
+            <span id="update-status-text" class="update-value">Ready</span>
+          </div>
+        </div>
+        <div id="update-progress-wrap" class="progress-wrap hidden">
+          <div class="progress-bar">
+            <div id="update-progress-fill" class="progress-fill" style="width:0%"></div>
+          </div>
+          <span id="update-progress-pct" class="progress-pct">0%</span>
+        </div>
+        <div class="action-row">
+          <button class="btn btn-primary" id="btn-check-update">Check for Updates</button>
+          <button class="btn btn-primary hidden" id="btn-install-update">Install &amp; Restart</button>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

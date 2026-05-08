@@ -1,0 +1,67 @@
+{
+  "name": "uniprint",
+  "productName": "UniPrint",
+  "version": "1.0.1",
+  "description": "Universal local USB thermal printer bridge",
+  "author": "UniPrint-POS",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "cross-env NODE_ENV=development electron .",
+    "rebuild": "electron-rebuild -f -w usb",
+    "make-ico": "node scripts/make-ico.js",
+    "postinstall": "electron-builder install-app-deps",
+    "build:win": "electron-builder --win --x64",
+    "build:publish": "electron-builder --win --x64 --publish always"
+  },
+  "dependencies": {
+    "electron-store": "^8.2.0",
+    "electron-updater": "^6.3.9",
+    "express": "^4.21.2",
+    "express-validator": "^7.2.1",
+    "helmet": "^8.0.0",
+    "usb": "^2.13.0",
+    "winston": "^3.17.0",
+    "winston-daily-rotate-file": "^5.0.0",
+    "ws": "^8.18.1",
+    "uuid": "^11.0.4"
+  },
+  "devDependencies": {
+    "cross-env": "^7.0.3",
+    "electron": "^33.4.0",
+    "electron-builder": "^25.1.8",
+    "electron-rebuild": "^3.2.9"
+  },
+  "build": {
+    "appId": "app.uniprint",
+    "productName": "UniPrint",
+    "copyright": "Copyright © 2025 UniPrint",
+    "directories": { "output": "dist", "buildResources": "assets" },
+    "files": ["src/**/*", "assets/**/*", "!**/*.map"],
+    "extraResources": [{ "from": "assets/", "to": "assets/", "filter": ["**/*"] }],
+    "win": {
+      "target": [{ "target": "nsis", "arch": ["x64"] }],
+      "icon": "assets/uniprint.ico",
+      "artifactName": "UniPrint-Setup-${version}.${ext}",
+      "verifyUpdateCodeSignature": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "UniPrint",
+      "installerIcon": "assets/uniprint.ico",
+      "uninstallerIcon": "assets/uniprint.ico",
+      "runAfterFinish": true
+    },
+    "asar": true,
+    "asarUnpack": ["node_modules/usb/**/*"],
+    "publish": {
+      "provider": "github",
+      "owner": "UniPrint-POS",
+      "repo": "uniprint-releases",
+      "releaseType": "release"
+    }
+  }
+}

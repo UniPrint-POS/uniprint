@@ -1,0 +1,28 @@
+const { contextBridge, ipcRenderer } = require('electron');
+
+contextBridge.exposeInMainWorld('uniprint', {
+  getConfig: () => ipcRenderer.invoke('config:get'),
+  setConfig: (key, value) => ipcRenderer.invoke('config:set', key, value),
+  setApiKey: (key) => ipcRenderer.invoke('config:setApiKey', key),
+  clearApiKey: () => ipcRenderer.invoke('config:clearApiKey'),
+  addToWhitelist: (origin) => ipcRenderer.invoke('whitelist:add', origin),
+  removeFromWhitelist: (origin) => ipcRenderer.invoke('whitelist:remove', origin),
+  testPrint: () => ipcRenderer.invoke('printer:test'),
+  listPrinters: () => ipcRenderer.invoke('printer:list'),
+  getStatus: () => ipcRenderer.invoke('printer:status'),
+  connectPrinter: () => ipcRenderer.invoke('printer:connect'),
+  selectPrinter: (printerConfig) => ipcRenderer.invoke('printer:select', printerConfig),
+  getLogs: () => ipcRenderer.invoke('logs:get'),
+  onLog: (cb) => ipcRenderer.on('log:entry', (_, entry) => cb(entry)),
+  getServerPort: () => ipcRenderer.invoke('server:port'),
+  getVersion: () => ipcRenderer.invoke('updater:version'),
+  checkForUpdates: () => ipcRenderer.invoke('updater:check'),
+  installUpdate: () => ipcRenderer.invoke('updater:install'),
+  onUpdateChecking: (cb) => ipcRenderer.on('update:checking', (_, data) => cb(data)),
+  onUpdateAvailable: (cb) => ipcRenderer.on('update:available', (_, data) => cb(data)),
+  onUpdateNotAvailable: (cb) => ipcRenderer.on('update:not-available', (_, data) => cb(data)),
+  onUpdateProgress: (cb) => ipcRenderer.on('update:progress', (_, data) => cb(data)),
+  onUpdateDownloaded: (cb) => ipcRenderer.on('update:downloaded', (_, data) => cb(data)),
+  onUpdateError: (cb) => ipcRenderer.on('update:error', (_, data) => cb(data)),
+  reportCspViolation: (data) => ipcRenderer.send('csp:violation', data),
+});
