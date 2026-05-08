@@ -44,8 +44,8 @@ async function start(printerManager, queue, ipcEmitter) {
   app.use('/pair', rateLimitMiddleware, pairRouter);
 
   app.use(corsMiddleware);
-  app.use(authMiddleware);
   app.use(rateLimitMiddleware);
+  app.use(authMiddleware);
 
   app.use('/print', validateMiddleware, printRouter);
   app.use('/printers', printersRouter);

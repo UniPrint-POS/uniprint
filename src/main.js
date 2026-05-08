@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, shell } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, shell, clipboard } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
@@ -112,8 +112,21 @@ function setupIpc() {
     return true;
   });
 
-  ipcMain.handle('config:setApiKey', (_, key) => {
-    config.setApiKey(key);
+  // ── Account PIN ──────────────────────────────────────────
+
+  ipcMain.handle('account:setupPin', (_, pin, page) => {
+    config.setupAccountPin(pin, page);
+    return true;
+  });
+
+  ipcMain.handle('account:verifyPin', (_, pin) => {
+    return config.verifyAccountPin(pin);
+  });
+
+  // ── API Key ──────────────────────────────────────────────
+
+  ipcMain.handle('config:setApiKey', (_, key, pin) => {
+    config.setApiKey(key, pin);
     return true;
   });
 
@@ -122,14 +135,46 @@ function setupIpc() {
     return true;
   });
 
-  ipcMain.handle('whitelist:add', (_, origin) => {
-    config.addToWhitelist(origin);
-    return config.getAll();
+  ipcMain.handle('config:revealApiKey', (_, pin) => {
+    return config.revealApiKey(pin);
   });
 
-  ipcMain.handle('whitelist:remove', (_, origin) => {
+  // ── Whitelist ────────────────────────────────────────────
+
+  ipcMain.handle('whitelist:view', (_, pin) => {
+    if (!config.verifyAccountPin(pin)) return null;
+    return config.getWhitelist();
+  });
+
+  ipcMain.handle('whitelist:add', (_, origin, pin) => {
+    if (!config.verifyAccountPin(pin)) throw new Error('Incorrect PIN');
+    config.addToWhitelist(origin);
+    return config.getWhitelist();
+  });
+
+  ipcMain.handle('whitelist:remove', (_, origin, pin) => {
+    if (!config.verifyAccountPin(pin)) throw new Error('Incorrect PIN');
     config.removeFromWhitelist(origin);
-    return config.getAll();
+    return config.getWhitelist();
+  });
+
+  ipcMain.handle('whitelist:update', (_, oldOrigin, newOrigin, pin) => {
+    if (!config.verifyAccountPin(pin)) throw new Error('Incorrect PIN');
+    config.removeFromWhitelist(oldOrigin);
+    config.addToWhitelist(newOrigin);
+    return config.getWhitelist();
+  });
+
+  ipcMain.handle('whitelist:clearAll', () => {
+    config.clearWhitelist();
+    return true;
+  });
+
+  // ── Clipboard ────────────────────────────────────────────
+
+  ipcMain.handle('clipboard:write', (_, text) => {
+    clipboard.writeText(String(text));
+    return true;
   });
 
   ipcMain.handle('printer:test', () => {
@@ -170,6 +215,9 @@ function setupIpc() {
       const { autoUpdater } = require('electron-updater');
       return autoUpdater.checkForUpdates();
     }
+    setTimeout(() => {
+      if (win) win.webContents.send('update:not-available', {});
+    }, 800);
     return null;
   });
 

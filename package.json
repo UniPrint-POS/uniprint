@@ -1,7 +1,7 @@
 {
   "name": "uniprint",
   "productName": "UniPrint",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Universal local USB thermal printer bridge",
   "author": "UniPrint-POS",
   "main": "src/main.js",

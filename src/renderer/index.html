@@ -9,7 +9,7 @@
 </head>
 <body>
   <header class="header">
-    <img src="../../assets/uniprint.png" alt="UniPrint" class="header-logo-img" onerror="this.style.display='none';document.getElementById('header-logo-fallback').style.display='inline'" />
+    <img src="../../assets/uniprint.png" alt="UniPrint" class="header-logo-img" onerror="this.style.display='none'" />
     <span id="header-status" class="status-badge offline">Offline</span>
   </header>
 
@@ -25,12 +25,18 @@
 
     <main class="content">
 
+      <!-- ── Dashboard ────────────────────────────────── -->
       <section id="tab-dashboard" class="tab-section">
-        <h2 class="section-title">Dashboard</h2>
+        <div class="page-header">
+          <h2 class="section-title">Dashboard</h2>
+          <p class="section-subtitle">Local HTTP print server for thermal printers</p>
+        </div>
+
         <div class="stat-grid">
           <div class="stat-card">
             <div class="stat-label">Server</div>
             <div class="stat-value green" id="stat-server">Running</div>
+            <div class="stat-meta" id="port-info">—</div>
           </div>
           <div class="stat-card">
             <div class="stat-label">Printer</div>
@@ -39,15 +45,20 @@
           <div class="stat-card">
             <div class="stat-label">Queue</div>
             <div class="stat-value" id="stat-queue">0</div>
+            <div class="stat-meta">jobs pending</div>
           </div>
         </div>
-        <div class="port-info" id="port-info">Listening on port: —</div>
+
         <div class="action-row">
           <button class="btn btn-primary" id="btn-test-print">Test Print</button>
           <button class="btn btn-ghost" id="btn-reconnect">Reconnect Printer</button>
         </div>
+
         <div class="setup-card">
-          <div class="setup-card-header">Quick Setup</div>
+          <div class="setup-card-header">
+            <span class="setup-card-title">Quick Setup</span>
+            <span class="setup-badge">4 steps</span>
+          </div>
           <div class="setup-steps">
             <div class="setup-step">
               <div class="setup-step-num">1</div>
@@ -82,8 +93,11 @@ Authorization: Bearer YOUR_KEY</div>
         </div>
       </section>
 
+      <!-- ── Printers ──────────────────────────────────── -->
       <section id="tab-printers" class="tab-section hidden">
-        <h2 class="section-title">Printers</h2>
+        <div class="page-header">
+          <h2 class="section-title">Printers</h2>
+        </div>
         <div id="selected-printer-info" class="callout hidden">
           <div class="callout-title">Currently Selected</div>
           <div id="selected-printer-name"></div>
@@ -94,77 +108,233 @@ Authorization: Bearer YOUR_KEY</div>
         </div>
       </section>
 
+      <!-- ── Whitelist ─────────────────────────────────── -->
       <section id="tab-whitelist" class="tab-section hidden">
-        <h2 class="section-title">Whitelist</h2>
-        <p class="section-desc">Add domains that are allowed to send print jobs. Leave empty to block all external requests.</p>
-        <div class="input-row">
-          <input
-            class="field-input"
-            type="text"
-            id="whitelist-input"
-            placeholder="https://yourapp.com"
-            autocomplete="off"
-            spellcheck="false"
-          />
-          <button class="btn btn-primary" id="btn-add-whitelist">Add</button>
+        <div class="page-header">
+          <h2 class="section-title">Whitelist</h2>
+          <p class="section-subtitle">Domains allowed to send print jobs. Protected by your account PIN.</p>
         </div>
-        <div id="whitelist-list" class="whitelist-list"></div>
+
+        <div id="whitelist-pin-banner" class="pin-set-banner hidden">
+          <div class="pin-set-banner-icon">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          </div>
+          <div class="pin-set-banner-body">
+            <div class="pin-set-banner-title">PIN already set</div>
+            <div class="pin-set-banner-desc">A PIN has already been configured for your account. The same PIN is shared between the Whitelist and API Key sections, so you only need to set it once.</div>
+          </div>
+        </div>
+
+        <!-- Locked state -->
+        <div id="whitelist-locked" class="locked-state">
+          <div class="locked-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          </div>
+          <div class="locked-title">Domains are hidden</div>
+          <div class="locked-desc">Enter your account PIN to view and manage whitelisted domains.</div>
+          <div class="locked-actions">
+            <button class="btn btn-primary" id="btn-unlock-whitelist">Unlock</button>
+            <button class="btn btn-danger" id="btn-clear-all-whitelist">Delete All</button>
+          </div>
+        </div>
+
+        <!-- Unlocked state -->
+        <div id="whitelist-unlocked" class="hidden">
+          <div class="input-row">
+            <input class="field-input" type="text" id="whitelist-input" placeholder="https://yourapp.com" autocomplete="off" spellcheck="false" />
+            <button class="btn btn-primary" id="btn-add-whitelist">Add</button>
+            <button class="btn btn-ghost" id="btn-lock-whitelist">Lock</button>
+          </div>
+          <div id="whitelist-list" class="whitelist-list"></div>
+        </div>
       </section>
 
+      <!-- ── API Key ───────────────────────────────────── -->
       <section id="tab-apikey" class="tab-section hidden">
-        <h2 class="section-title">API Key</h2>
-        <p class="section-desc">Enter the secret API key that your POS software will use. UniPrint stores only a secure hash — the original key is never saved.</p>
+        <div class="page-header">
+          <h2 class="section-title">API Key</h2>
+          <p class="section-subtitle">Protect your print endpoint with a secret key shared between UniPrint and your POS software.</p>
+        </div>
+
+        <div id="apikey-pin-banner" class="pin-set-banner hidden">
+          <div class="pin-set-banner-icon">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          </div>
+          <div class="pin-set-banner-body">
+            <div class="pin-set-banner-title">PIN already set</div>
+            <div class="pin-set-banner-desc">A PIN has already been configured for your account. The same PIN is shared between the Whitelist and API Key sections, so you only need to set it once.</div>
+          </div>
+        </div>
+
         <div class="callout" id="apikey-status-box">
           <span id="apikey-status-text">Checking...</span>
         </div>
+
         <div class="input-row">
-          <input
-            class="field-input"
-            type="password"
-            id="apikey-input"
-            placeholder="Minimum 16 characters"
-            autocomplete="new-password"
-          />
+          <input class="field-input" type="password" id="apikey-input" placeholder="Enter your API key…" autocomplete="new-password" />
           <button class="btn btn-primary" id="btn-set-apikey">Set Key</button>
         </div>
+
+        <div id="reveal-card" class="reveal-card hidden">
+          <div class="reveal-card-body">
+            <div>
+              <div class="reveal-card-label">Stored API Key</div>
+              <div class="reveal-dots">● ● ● ● ● ● ● ● ● ● ● ● ● ● ● ●</div>
+            </div>
+            <button class="btn btn-ghost" id="btn-reveal-apikey">Reveal</button>
+          </div>
+        </div>
+
+        <div class="info-card">
+          <div class="info-card-title">Key requirements</div>
+          <ul class="info-list">
+            <li><strong>Minimum 16 characters</strong> — longer keys are significantly harder to brute-force</li>
+            <li><strong>Any characters allowed</strong> — letters, digits, symbols, spaces (leading/trailing spaces are trimmed)</li>
+            <li><strong>Verified via SHA-256 hash</strong> — print requests are authenticated by a one-way fingerprint; the plaintext key is never transmitted over any network</li>
+            <li><strong>PIN-protected viewing</strong> — the key is stored encrypted with AES-256-GCM; reveal it using your account PIN; if you forget your PIN, clear and set a new key</li>
+          </ul>
+        </div>
+
         <div>
-          <button class="btn btn-danger hidden" id="btn-clear-apikey">Clear API Key</button>
+          <button class="btn btn-danger hidden" id="btn-clear-apikey">Delete API Key</button>
         </div>
       </section>
 
+      <!-- ── Logs ──────────────────────────────────────── -->
       <section id="tab-logs" class="tab-section hidden">
-        <h2 class="section-title">Logs</h2>
+        <div class="page-header">
+          <h2 class="section-title">Logs</h2>
+        </div>
         <div class="log-toolbar">
           <button class="btn btn-ghost" id="btn-clear-logs">Clear</button>
         </div>
         <div id="log-container" class="log-container"></div>
       </section>
 
+      <!-- ── Updates ───────────────────────────────────── -->
       <section id="tab-updates" class="tab-section hidden">
-        <h2 class="section-title">Updates</h2>
-        <div class="update-info">
-          <div class="update-row">
-            <span class="update-label">Current Version</span>
-            <span id="update-version" class="update-value">—</span>
-          </div>
-          <div class="update-row">
-            <span class="update-label">Status</span>
-            <span id="update-status-text" class="update-value">Ready</span>
-          </div>
+        <div class="page-header">
+          <h2 class="section-title">Updates</h2>
         </div>
-        <div id="update-progress-wrap" class="progress-wrap hidden">
-          <div class="progress-bar">
-            <div id="update-progress-fill" class="progress-fill" style="width:0%"></div>
+        <div class="update-card">
+          <div class="update-card-header">Application Updates</div>
+          <div class="update-card-body">
+            <div class="update-info">
+              <div class="update-row">
+                <span class="update-label">Current Version</span>
+                <span id="update-version" class="update-value update-version-val">—</span>
+              </div>
+              <div class="update-row">
+                <span class="update-label">Status</span>
+                <span id="update-status-text" class="update-value">You are running the latest version.</span>
+              </div>
+            </div>
+            <div id="update-progress-wrap" class="progress-wrap hidden">
+              <div class="progress-bar">
+                <div id="update-progress-fill" class="progress-fill" style="width:0%"></div>
+              </div>
+              <span id="update-progress-pct" class="progress-pct">0%</span>
+            </div>
+            <div class="action-row">
+              <button class="btn btn-primary" id="btn-check-update">Check for Updates</button>
+              <button class="btn btn-primary hidden" id="btn-install-update">Install &amp; Restart</button>
+            </div>
           </div>
-          <span id="update-progress-pct" class="progress-pct">0%</span>
-        </div>
-        <div class="action-row">
-          <button class="btn btn-primary" id="btn-check-update">Check for Updates</button>
-          <button class="btn btn-primary hidden" id="btn-install-update">Install &amp; Restart</button>
         </div>
       </section>
 
     </main>
+  </div>
+
+  <!-- ── Account PIN Setup Modal (first time) ──────────── -->
+  <div id="modal-account-pin-setup" class="modal-overlay hidden">
+    <div class="modal-box">
+      <div class="modal-header">
+        <div class="modal-title">Set up an account PIN</div>
+        <div class="modal-subtitle" id="pin-setup-subtitle">Create a PIN that will be used to authorize all sensitive operations across your account, including API Key and Whitelist management.</div>
+      </div>
+      <div class="modal-body">
+        <div class="modal-field">
+          <label class="modal-label" for="pin-setup-input">PIN</label>
+          <input class="field-input" type="password" id="pin-setup-input" placeholder="Minimum 4 characters" autocomplete="new-password" />
+        </div>
+        <div class="modal-field">
+          <label class="modal-label" for="pin-setup-confirm">Confirm PIN</label>
+          <input class="field-input" type="password" id="pin-setup-confirm" placeholder="Re-enter your PIN" autocomplete="new-password" />
+        </div>
+        <div class="modal-error hidden" id="pin-setup-error"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" id="btn-pin-setup-cancel">Cancel</button>
+        <button class="btn btn-primary" id="btn-pin-setup-save">Set PIN &amp; Continue</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Account PIN Confirm Modal (subsequent operations) ─ -->
+  <div id="modal-account-pin-confirm" class="modal-overlay hidden">
+    <div class="modal-box">
+      <div class="modal-header">
+        <div class="modal-title">Confirm Account PIN</div>
+        <div class="modal-subtitle">Enter your account PIN to authorize this action.</div>
+      </div>
+      <div class="modal-body">
+        <div class="modal-field">
+          <label class="modal-label" for="pin-confirm-input">PIN</label>
+          <input class="field-input" type="password" id="pin-confirm-input" placeholder="Your account PIN" autocomplete="current-password" />
+        </div>
+        <div class="modal-error hidden" id="pin-confirm-error"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" id="btn-pin-confirm-cancel">Cancel</button>
+        <button class="btn btn-primary" id="btn-pin-confirm-submit">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Key Display Modal ─────────────────────────────── -->
+  <div id="modal-key-display" class="modal-overlay hidden">
+    <div class="modal-box">
+      <div class="modal-header">
+        <div class="modal-title">Your API Key</div>
+        <div class="modal-subtitle">Copy this key to your POS software. Close this dialog when done.</div>
+      </div>
+      <div class="modal-body">
+        <div class="key-display-value" id="key-display-value"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" id="btn-key-display-close">Close</button>
+        <button class="btn btn-primary" id="btn-key-display-copy">Copy to Clipboard</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Clear API Key Confirm Modal ───────────────────── -->
+  <div id="modal-clear-apikey-confirm" class="modal-overlay hidden">
+    <div class="modal-box">
+      <div class="modal-header">
+        <div class="modal-title">Delete API Key?</div>
+        <div class="modal-subtitle">This will permanently remove your API key. All integrations using this key will stop working immediately. No PIN required — anyone with physical access to this machine can do this.</div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" id="btn-clear-apikey-cancel">Cancel</button>
+        <button class="btn btn-danger" id="btn-clear-apikey-ok">Delete Key</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Clear All Whitelist Confirm Modal ─────────────── -->
+  <div id="modal-clear-whitelist-confirm" class="modal-overlay hidden">
+    <div class="modal-box">
+      <div class="modal-header">
+        <div class="modal-title">Delete All Domains?</div>
+        <div class="modal-subtitle">This will remove all whitelisted domains. All print requests from those origins will be blocked immediately. No PIN required.</div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" id="btn-clear-whitelist-cancel">Cancel</button>
+        <button class="btn btn-danger" id="btn-clear-whitelist-ok">Delete All</button>
+      </div>
+    </div>
   </div>
 
   <script src="app.js"></script>
