@@ -1,7 +1,7 @@
 {
   "name": "uniprint",
   "productName": "UniPrint",
-  "version": "1.0.2",
+  "version": "1.0.4",
   "description": "Universal local USB thermal printer bridge",
   "author": "UniPrint-POS",
   "main": "src/main.js",
@@ -12,7 +12,7 @@
     "make-ico": "node scripts/make-ico.js",
     "postinstall": "electron-builder install-app-deps",
     "build:win": "electron-builder --win --x64",
-    "build:publish": "electron-builder --win --x64 --publish always"
+    "release": "node scripts/release.js"
   },
   "dependencies": {
     "electron-store": "^8.2.0",

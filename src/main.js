@@ -25,6 +25,8 @@ let tray = null;
 let serverPort = null;
 let printerManager = null;
 let queue = null;
+let _updateReadyToInstall = false;
+let _quittingForUpdate    = false;
 
 const CONFIG_ALLOWLIST = ['paperWidth', 'autoStart', 'selectedPrinter'];
 
@@ -210,10 +212,15 @@ function setupIpc() {
 
   ipcMain.handle('updater:version', () => app.getVersion());
 
-  ipcMain.handle('updater:check', async () => {
+  ipcMain.handle('updater:check', () => {
     if (app.isPackaged) {
       const { autoUpdater } = require('electron-updater');
-      return autoUpdater.checkForUpdates();
+      // Fire-and-forget — returning the result causes a structured-clone error because
+      // UpdateCheckResult contains a non-serialisable CancellationToken. Events carry all status.
+      autoUpdater.checkForUpdates().catch(err => {
+        if (win) win.webContents.send('update:error', { message: err.message });
+      });
+      return null;
     }
     setTimeout(() => {
       if (win) win.webContents.send('update:not-available', {});
@@ -224,7 +231,8 @@ function setupIpc() {
   ipcMain.handle('updater:install', () => {
     if (app.isPackaged) {
       const { autoUpdater } = require('electron-updater');
-      autoUpdater.quitAndInstall();
+      _quittingForUpdate = true;
+      autoUpdater.quitAndInstall(true, true); // silent NSIS install, restart after
     }
   });
 }
@@ -234,7 +242,7 @@ function setupUpdater() {
 
   const { autoUpdater } = require('electron-updater');
   autoUpdater.autoDownload = true;
-  autoUpdater.autoInstallOnAppQuit = true;
+  autoUpdater.autoInstallOnAppQuit = false; // handled manually so we can pass isSilent=true
 
   autoUpdater.on('checking-for-update', () => {
     if (win) win.webContents.send('update:checking');
@@ -253,12 +261,22 @@ function setupUpdater() {
   });
 
   autoUpdater.on('update-downloaded', (info) => {
+    _updateReadyToInstall = true;
     if (win) win.webContents.send('update:downloaded', info);
   });
 
   autoUpdater.on('error', (err) => {
     logger.error(`Updater error: ${err.message}`);
     if (win) win.webContents.send('update:error', { message: err.message });
+  });
+
+  // When the user closes / shuts down without clicking "Restart & Update",
+  // install silently on quit so the next launch is already on the new version.
+  app.on('before-quit', () => {
+    if (_updateReadyToInstall && !_quittingForUpdate) {
+      _quittingForUpdate = true;
+      autoUpdater.quitAndInstall(true, false); // silent, no restart (user chose to quit)
+    }
   });
 
   setTimeout(() => {

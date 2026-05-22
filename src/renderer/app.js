@@ -216,7 +216,7 @@
   });
 
   // withAccountPin(pageName, onVerified)
-  //   - pageName: 'API Key' | 'Whitelist' (used in messaging)
+  //   - pageName: 'API Key' | 'Whitelist' (we'll use it in messaging)
   //   - onVerified: async (pin) => {}  called after PIN is verified/set
   async function withAccountPin(pageName, onVerified) {
     const cfg    = await window.uniprint.getConfig();
@@ -711,10 +711,10 @@
 
     try {
       await window.uniprint.checkForUpdates();
-    } catch (err) {
+    } catch {
+      // IPC-level failure (not a normal update-check error; those arrive via onUpdateError)
       clearUpdateCheckTimer();
-      statusEl.textContent = 'Update check failed.';
-      toast(`Update check failed: ${err.message}`, 'error');
+      statusEl.textContent = 'Could not connect to the update service.';
     }
   });
 
@@ -751,12 +751,12 @@
 
   window.uniprint.onUpdateDownloaded(info => {
     clearUpdateCheckTimer();
-    document.getElementById('update-status-text').textContent = `Ready to install: v${info.version}`;
+    document.getElementById('update-status-text').textContent = `v${info.version} downloaded — click "Restart & Update" to install, or it will install automatically when you next close UniPrint.`;
     const wrap = document.getElementById('update-progress-wrap');
     if (wrap) wrap.classList.add('hidden');
     const installBtn = document.getElementById('btn-install-update');
     if (installBtn) installBtn.classList.remove('hidden');
-    toast(`Update ready: v${info.version}. Click Install & Restart.`, 'success');
+    toast(`v${info.version} ready to install — no installer wizard required.`, 'success');
   });
 
   window.uniprint.onUpdateError(data => {
